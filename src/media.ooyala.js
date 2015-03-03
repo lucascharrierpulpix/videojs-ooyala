@@ -75,6 +75,11 @@ videojs.Ooyala = videojs.MediaTechController.extend({
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         videojs.Ooyala.apiLoading = true;
       }
+      
+      var content = "#videojs49>div{position:absolute !important;} #videojs49>div.ng-scope{pointer-events: none;}"
+      + "#videojs49 .innerWrapper {background: #000; z-index: 0;}";
+
+      loadjscssfile(content, 'css');
 
       function waitForScript(test, callback) {
         var callbackTimer = setInterval(function() {
@@ -281,3 +286,20 @@ videojs.Ooyala.prototype.onSeek = function(seconds){
   this.player_.trigger('timeupdate');
   this.player_.trigger('seeked');
 };
+
+function loadjscssfile(content, filetype){
+    console.log('loadjscssfile');
+    if (filetype === "js"){ //if filename is a external JavaScript file
+        var fileref=document.createElement('script')
+        fileref.setAttribute("type","text/javascript")
+        fileref.setAttribute("src", filename)
+    }
+    else if (filetype === "css"){ //if filename is an external CSS file
+        var fileref=document.createElement("style");
+        // fileref.setAttribute("rel", "stylesheet")
+        fileref.setAttribute("type", "text/css");
+        fileref.innerHTML = content;
+    }
+    if (typeof fileref!="undefined")
+        document.getElementsByTagName("head")[0].appendChild(fileref)
+}
