@@ -30,13 +30,36 @@ videojs.Ooyala = videojs.MediaTechController.extend({
     var self = this;
     this.id_ = this.player_.id() + '_ooyala_api';
 
+    if (typeof this.player_.options().ooControls != 'undefined') {
+        var dmC = this.player_.options().ooControls;
+
+        if (dmC && this.player_.controls()){
+            this.player_.controls(false);
+        }
+    }
+
+     this.player_.controls(true);
+
+    // Copy the Javascript options if they exist
+    if (typeof options.source !== 'undefined') {
+      for (var key in options.source) {
+        if (options['source'].hasOwnProperty(key)) {
+          this.player_.options()[key] = options.source[key];
+        }
+      }
+    }
+    this.player_.options().poster = undefined;
+
     this.el_ = videojs.Component.prototype.createEl('iframe', {
       id: this.id_,
       className: 'vjs-tech',
       scrolling: 'no',
+      autoplay: (this.player_.options().autoplay) ? 1 : 0,
+      chromeless: (this.player_.options().ooControls) ? 0 : 1,
       marginWidth: 0,
       marginHeight: 0,
       frameBorder: 0,
+      // controls: 'html',
       webkitAllowFullScreen: 'true',
       mozallowfullscreen: 'true',
       allowFullScreen: 'true',
@@ -59,8 +82,7 @@ videojs.Ooyala = videojs.MediaTechController.extend({
     this.isReady_ = false;
 
 
-
-    if (videojs.Ooyala.apiReady) {
+    if (false) {
         videojs.Ooyala.loadOoyala(this);
     } else {
       // Add to the queue because the Ooyala API is not ready
@@ -82,6 +104,10 @@ videojs.Ooyala = videojs.MediaTechController.extend({
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         videojs.Ooyala.apiLoading = true;
+
+        var content = "#" + this.player_.id() + ">div{position:absolute !important; z-index: 500;} #" + this.player_.id() +">div.ng-scope{pointer-events: none;} "
+          +  "#" + this.player_.id() + " .innerWrapper {background: #000; z-index: 0;} " + " .vjs-default-skin .vjs-big-play-button{ height:78px !important; width:78px !important}";
+        loadjscssfile(content, 'css');
       }
 
       if(typeof this.player_.bigPlayButton !== 'undefined') {
@@ -90,11 +116,8 @@ videojs.Ooyala = videojs.MediaTechController.extend({
             // this.player_.bigPlayButton.hide();
       // this.player_.posterImage.hide();
 
+      //videojs.MediaTechController.prototype.dispose.call(this);
 
-      var content = "#" + this.player_.id() + ">div{position:absolute !important; z-index: 500;} #" + this.player_.id() +">div.ng-scope{pointer-events: none;} "
-      +  "#" + this.player_.id() + " .innerWrapper {background: #000; z-index: 0;} " + " .vjs-default-skin .vjs-big-play-button{ height:78px !important; width:78px !important}";
-
-      loadjscssfile(content, 'css');
 
       function waitForScript(test, callback) {
         var callbackTimer = setInterval(function() {
@@ -129,6 +152,7 @@ videojs.Ooyala = videojs.MediaTechController.extend({
 });
 
 videojs.Ooyala.prototype.dispose = function(){
+  console.log('videojs.Ooyala.prototype.dispose');
   if (this.ooyala) {
     this.ooyala.destroy();
     delete this.ooyala;
@@ -142,7 +166,7 @@ videojs.Ooyala.prototype.src = function(src){
   //   this.ooyala.destroy();
   //   delete this.ooyala;
   // }
-
+  console.log('videojs.Ooyala.prototype.src');
   this.contentId = src;
   videojs.Ooyala.loadOoyala(this);
 };
@@ -195,15 +219,15 @@ videojs.Ooyala.loadOoyala = function(player){
   }
 
   OO.ready(function() {
-    console.log('00.ready');
+    console.log('videojs.Ooyala.loadOoyala : 00.ready');
     var ooPlayer = OO.Player.create(domId, contentId, {
-      'flashParams': {
-        height: '100%',
-        width: '100%',
-        hide: 'all'
-      },
+      // 'flashParams': {
+      //   height: '100%',
+      //   width: '100%',
+      //   //hide: 'all'
+      // },
       onCreate: function(ooPlayer) {
-        console.log('OO created');
+        console.log('videojs.Ooyala.loadOoyala : onCreated');
         ooPlayer.subscribe('*', messageBus, function(eventName) {
           // Player embedded parameters go here
         });
@@ -281,7 +305,14 @@ videojs.Ooyala.loadOoyala = function(player){
 }
 
 videojs.Ooyala.prototype.onReady = function(){
+  console.log('videojs.Ooyala.prototype.onReady');
   this.isReady_ = true;
+  if (this.player_.options().ooControls){
+    this.player_.bigPlayButton.hide();
+    this.player_.posterImage.hide();
+  } else {
+    this.player_.bigPlayButton.show();
+  }
   this.triggerReady();
 };
 
