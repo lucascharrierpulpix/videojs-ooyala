@@ -39,13 +39,17 @@ videojs.Ooyala = videojs.MediaTechController.extend({
       frameBorder: 0,
       webkitAllowFullScreen: 'true',
       mozallowfullscreen: 'true',
-      allowFullScreen: 'true'
+      allowFullScreen: 'true',
     });
 
     this.player_el_.insertBefore(this.el_, this.player_el_.firstChild);
 
+    // this.player_.bigPlayButton.hide();
+
     this.ooyala = undefined;
     this.ooyalaInfo = {};
+
+    this.player_.options().poster = undefined;
 
     var self = this;
     this.el_.onload = function() { self.onLoad(); };
@@ -53,6 +57,8 @@ videojs.Ooyala = videojs.MediaTechController.extend({
     this.contentId = player.options()['src'];
     this.playerId = player.options()['playerId'];
     this.isReady_ = false;
+
+
 
     if (videojs.Ooyala.apiReady) {
         videojs.Ooyala.loadOoyala(this);
@@ -62,9 +68,11 @@ videojs.Ooyala = videojs.MediaTechController.extend({
 
       // Load the Dailymotion API if it is the first Dailymotion video
       if (!videojs.Ooyala.apiLoading) {
+        console.log('! videojs.Ooyala.apiLoading');
         var tag = document.createElement('script');
-        var src = '//player.ooyala.com/v3/' + this.playerId + '?platform=html5-priority';
-        
+        var src = '//player.ooyala.com/v3/' + this.playerId + '';
+        //var src = 'http://player.ooyala.com/iframe.js&pbid=' + this.playerId + '?platform=html5-priority';
+
         // If we are not on a server, don't specify the origin (it will crash)
         if (window.location.protocol == 'file:'){
           src = 'http:' + src;
@@ -75,9 +83,16 @@ videojs.Ooyala = videojs.MediaTechController.extend({
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         videojs.Ooyala.apiLoading = true;
       }
-      
-      var content = "#videojs49>div{position:absolute !important;} #videojs49>div.ng-scope{pointer-events: none;}"
-      + "#videojs49 .innerWrapper {background: #000; z-index: 0;}";
+
+      if(typeof this.player_.bigPlayButton !== 'undefined') {
+        this.player_.bigPlayButton.hide();
+      }
+            // this.player_.bigPlayButton.hide();
+      // this.player_.posterImage.hide();
+
+
+      var content = "#" + this.player_.id() + ">div{position:absolute !important; z-index: 500;} #" + this.player_.id() +">div.ng-scope{pointer-events: none;} "
+      +  "#" + this.player_.id() + " .innerWrapper {background: #000; z-index: 0;} " + " .vjs-default-skin .vjs-big-play-button{ height:78px !important; width:78px !important}";
 
       loadjscssfile(content, 'css');
 
@@ -123,22 +138,29 @@ videojs.Ooyala.prototype.dispose = function(){
 };
 
 videojs.Ooyala.prototype.src = function(src){
-  if (this.ooyala) {
-    this.ooyala.destroy();
-    delete this.ooyala;
-  }
+  // if (this.ooyala) {
+  //   this.ooyala.destroy();
+  //   delete this.ooyala;
+  // }
 
   this.contentId = src;
   videojs.Ooyala.loadOoyala(this);
 };
 
 videojs.Ooyala.prototype.load = function(){};
-videojs.Ooyala.prototype.play = function(){};
-videojs.Ooyala.prototype.pause = function(){};
+videojs.Ooyala.prototype.play = function(){
+  this.ooyala.play();
+//   this.player_.posterImage.hide();
+// //  this.player_.bigPlayButton.hide();
+};
+videojs.Ooyala.prototype.pause = function(){this.ooyala.pause();};
 videojs.Ooyala.prototype.paused = function(){ return (this.ooyalaInfo.state == OoyalaState.PAUSED); };
-videojs.Ooyala.prototype.currentTime = function(){ return this.ooyalaInfo.time; };
-videojs.Ooyala.prototype.setCurrentTime = function(seconds){};
-videojs.Ooyala.prototype.duration = function(){ return this.ooyalaInfo.duration; };
+videojs.Ooyala.prototype.currentTime = function(){ return this.ooyalaInfo.time;};
+videojs.Ooyala.prototype.setCurrentTime = function(seconds){
+  this.ooyala.seek(seconds);
+  return true;
+};
+videojs.Ooyala.prototype.duration = function(){return this.ooyalaInfo.duration*1000;};
 videojs.Ooyala.prototype.volume = function(){ return 0; };
 videojs.Ooyala.prototype.setVolume = function(percentAsDecimal){};
 videojs.Ooyala.prototype.muted = function(){};
@@ -173,15 +195,22 @@ videojs.Ooyala.loadOoyala = function(player){
   }
 
   OO.ready(function() {
+    console.log('00.ready');
     var ooPlayer = OO.Player.create(domId, contentId, {
+      'flashParams': {
+        height: '100%',
+        width: '100%',
+        hide: 'all'
+      },
       onCreate: function(ooPlayer) {
+        console.log('OO created');
         ooPlayer.subscribe('*', messageBus, function(eventName) {
           // Player embedded parameters go here
         });
 
         ooPlayer.subscribe('error', messageBus, function(eventName, payload) {
           // console.error(eventName + ": " + payload);
-          player.onError(eventName + ": " + payload)
+          player.onError(eventName + ": " + payload);
         });
 
         ooPlayer.subscribe('playheadTimeChanged', messageBus, function() {
@@ -213,7 +242,7 @@ videojs.Ooyala.loadOoyala = function(player){
           // console.log("Description is: " + ooPlayer.getDescription());
 
           player.ooyala = ooPlayer;
-          
+
           player.ooyalaInfo = {
             state: OoyalaState.UNSTARTED,
             volume: 1,
